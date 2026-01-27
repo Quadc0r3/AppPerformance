@@ -127,7 +127,7 @@ fun OptimizedListItem(index: Int) {
 // Simuliert unnötige Arbeit
 fun heavyCalculation(): Int {
     var result = 0
-    repeat(10_000) {
+    repeat(10000) {
         result += Random.nextInt(0, 10)
     }
     return result
