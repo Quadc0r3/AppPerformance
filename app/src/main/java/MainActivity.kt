@@ -3,22 +3,13 @@ package com.example.performance
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,14 +17,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                PerformanceDemoScreen()
+                PerformanceDemoApp()
             }
         }
     }
 }
 
 @Composable
-fun PerformanceDemoScreen() {
+fun PerformanceDemoApp() {
     var optimized by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -43,92 +34,104 @@ fun PerformanceDemoScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = if (optimized) "Optimized Version" else "Bad Version",
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium
             )
 
             Button(onClick = { optimized = !optimized }) {
-                Text("Toggle")
+                Text("Toggle Version")
             }
         }
 
         Divider()
 
         if (optimized) {
-            OptimizedList()
+            OptimizedScreen()
         } else {
-            BadList()
+            BadScreen()
         }
     }
 }
 
-@Composable
-fun BadList() {
-    // Absichtlich schlechte Performance
-    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .verticalScroll(scrollState)
-            .fillMaxSize()
-    ) {
-        repeat(1000) { index ->
-            BadListItem(index)
+//BAD
+@Composable
+fun BadScreen() {
+    var counter by remember { mutableStateOf(0) }
+
+    Column {
+        Button(
+            onClick = { counter++ },
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text("Counter: $counter")
+        }
+
+        LazyColumn {
+            items(1000) { index ->
+                BadListItem(index)
+            }
         }
     }
 }
 
 @Composable
 fun BadListItem(index: Int) {
-    // Teure Berechnung im UI-Thread
-    val randomValue = remember {
-        heavyCalculation()
+    SideEffect {
+        println("Recomposed BAD item $index")
     }
 
-    Box(
+    Text(
+        text = "Bad Item #$index",
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .background(Color(0xFFFFCDD2))
-            .padding(16.dp)
-    ) {
-        Text(text = "Bad Item #$index → $randomValue")
-    }
+    )
 }
 
+//GOOD
 @Composable
-fun OptimizedList() {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(1000) { index ->
-            OptimizedListItem(index)
+fun OptimizedScreen() {
+    Column {
+
+        CounterButton()
+
+        LazyColumn {
+            items(
+                items = (0 until 1000).toList(),
+                key = { it } // ✅ stabile Keys
+            ) { index ->
+                OptimizedListItem(index)
+            }
         }
     }
 }
 
 @Composable
-fun OptimizedListItem(index: Int) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color(0xFFC8E6C9))
-            .padding(16.dp)
+fun CounterButton() {
+    var counter by remember { mutableStateOf(0) }
+
+    Button(
+        onClick = { counter++ },
+        modifier = Modifier.padding(16.dp)
     ) {
-        Text(text = "Optimized Item #$index")
+        Text("Counter: $counter")
     }
 }
 
-// Simuliert unnötige Arbeit
-fun heavyCalculation(): Int {
-    var result = 0
-    repeat(10000) {
-        result += Random.nextInt(0, 10)
+@Composable
+fun OptimizedListItem(index: Int) {
+    SideEffect {
+        println("Recomposed OPT item $index")
     }
-    return result
+
+    Text(
+        text = "Optimized Item #$index",
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    )
 }
